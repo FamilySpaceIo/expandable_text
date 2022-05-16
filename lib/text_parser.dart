@@ -34,65 +34,45 @@ class TextSegment {
       isUrl.hashCode;
 }
 
-/// Split the string into multiple instances of [TextSegment] for mentions, hashtags, URLs and regular text.
+/// Split the string into multiple instances of [TextSegment] for mentions and regular text.
 ///
 /// Mentions are all words that start with @, e.g. @mention.
-/// Hashtags are all words that start with #, e.g. #hashtag.
+ 
+// This function is parsing text in PostWidget, 
+// the same function for parsing text in PostScreen is in MentionsUtils
 List<TextSegment> parseText(String? text) {
-  final segments = <TextSegment>[];
-
+   final segments = <TextSegment>[];
   if (text == null || text.isEmpty) {
     return segments;
   }
 
-  // parse urls and words starting with @ (mention) or # (hashtag)
-  RegExp exp = RegExp(
-      r'(?<keyword>(#|@)([\p{Alphabetic}\p{Mark}\p{Decimal_Number}\p{Connector_Punctuation}\p{Join_Control}\u00A0]+)|(?<url>(?:(?:https?|ftp):\/\/)?[-a-z0-9@:%._\+~#=]{1,256}\.[a-z0-9]{1,6}(\/[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)?))',
-      unicode: true);
-  final matches = exp.allMatches(text);
+  var expTextUserIdDisplayName =
+      RegExp(r'([^@]*)@\[__(.+?)__\]\(__(.+?)__\)|(.+)');
+  var matchesAll = expTextUserIdDisplayName.allMatches(text);
 
-  var start = 0;
-  matches.forEach((match) {
-    // text before the keyword
-    if (match.start > start) {
-      if (segments.isNotEmpty && segments.last.isText) {
-        segments.last.text += text.substring(start, match.start);
-      } else {
-        segments.add(TextSegment(text.substring(start, match.start)));
+  matchesAll.forEach(
+    (element) {
+      final preText = element.group(1);
+      final userIdText = element.group(2);
+      final userNameText = element.group(3);
+      final postText = element.group(4);
+
+      if (preText != null) {
+        segments.add(
+          TextSegment(preText),
+        );
       }
-      start = match.start;
-    }
-
-    final url = match.namedGroup('url');
-    final keyword = match.namedGroup('keyword');
-
-    if (url != null) {
-      segments.add(TextSegment(url, url, false, false, true));
-    } else if (keyword != null) {
-      final isWord = match.start == 0 ||
-          [' ', '\n'].contains(text.substring(match.start - 1, start));
-      if (!isWord) {
-        return;
+      if (userIdText != null && userNameText != null) {
+        segments.add(
+          TextSegment('@$userNameText', userIdText, false, true, false),
+        );
       }
-
-      final isHashtag = keyword.startsWith('#');
-      final isMention = keyword.startsWith('@');
-
-      segments.add(
-          TextSegment(keyword, keyword.substring(1), isHashtag, isMention));
-    }
-
-    start = match.end;
-  });
-
-  // text after the last keyword or the whole text if it does not contain any keywords
-  if (start < text.length) {
-    if (segments.isNotEmpty && segments.last.isText) {
-      segments.last.text += text.substring(start);
-    } else {
-      segments.add(TextSegment(text.substring(start)));
-    }
-  }
-
+      if (postText != null) {
+        segments.add(
+          TextSegment(postText),
+        );
+      }
+    },
+  );
   return segments;
 }
