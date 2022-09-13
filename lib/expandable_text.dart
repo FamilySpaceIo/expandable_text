@@ -247,8 +247,7 @@ class ExpandableTextState extends State<ExpandableText>
                   children: _buildTextSpans(
                       _expanded
                           ? _textSegments
-                          : parseText(
-                              widget.text.substring(0, max(endOffset, 0))),
+                          : _subsegments(_textSegments, max(endOffset, 0)),
                       effectiveTextStyle!,
                       recognizer),
                 )
@@ -376,5 +375,32 @@ class ExpandableTextState extends State<ExpandableText>
     }
 
     return spans;
+  }
+
+  List<TextSegment> _subsegments(List<TextSegment> segments, int end) {
+    int charsLeft = end;
+    final List<TextSegment> retSegs = [];
+    for (final seg in segments) {
+      if (seg.text.length <= charsLeft) {
+        retSegs.add(seg);
+      } else {
+        final TextSegment shortenedSegment = TextSegment(
+          seg.text.substring(0, charsLeft),
+          seg.name,
+          seg.isHashtag,
+          seg.isMention,
+          seg.isUrl,
+        );
+        if (shortenedSegment.text.length >= 2) {
+          retSegs.add(shortenedSegment);
+        }
+      }
+
+      charsLeft -= seg.text.length;
+      if (charsLeft <= 0) {
+        break;
+      }
+    }
+    return retSegs;
   }
 }
