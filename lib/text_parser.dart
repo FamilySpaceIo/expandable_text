@@ -37,42 +37,43 @@ class TextSegment {
 /// Split the string into multiple instances of [TextSegment] for mentions and regular text.
 ///
 /// Mentions are all words that start with @, e.g. @mention.
- 
-// This function is parsing text in PostWidget, 
+
+// This function is parsing text in PostWidget,
 // the same function for parsing text in PostScreen is in MentionsUtils
 List<TextSegment> parseText(String? text) {
-   final segments = <TextSegment>[];
+  final segments = <TextSegment>[];
   if (text == null || text.isEmpty) {
     return segments;
   }
 
-  var expTextUserIdDisplayName =
-      RegExp(r'([^@]*)@\[__(.+?)__\]\(__(.+?)__\)|(.+)');
-  var matchesAll = expTextUserIdDisplayName.allMatches(text);
+  var userMentionsRegEx = RegExp(r'@\[__([^_]+)__]\(__([^_]+)__\)');
+  var userMentionsMatches = userMentionsRegEx.allMatches(text);
+  int lastUserMentionEnd = 0;
 
-  matchesAll.forEach(
-    (element) {
-      final preText = element.group(1);
-      final userIdText = element.group(2);
-      final userNameText = element.group(3);
-      final postText = element.group(4);
+  userMentionsMatches.forEach(
+    (match) {
+      final userIdText = match.group(1);
+      final userNameText = match.group(2);
 
-      if (preText != null) {
+      if (lastUserMentionEnd != match.start) {
         segments.add(
-          TextSegment(preText),
+          TextSegment(text.substring(lastUserMentionEnd, match.start)),
         );
       }
+
       if (userIdText != null && userNameText != null) {
         segments.add(
           TextSegment('@$userNameText', userIdText, false, true, false),
         );
       }
-      if (postText != null) {
-        segments.add(
-          TextSegment(postText),
-        );
-      }
+
+      lastUserMentionEnd = match.end;
     },
   );
+
+  if (lastUserMentionEnd != text.length) {
+    segments.add(TextSegment(text.substring(lastUserMentionEnd, text.length)));
+  }
+
   return segments;
 }
