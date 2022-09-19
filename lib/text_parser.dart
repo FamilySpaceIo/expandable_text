@@ -48,11 +48,6 @@ List<TextSegment> parseText(String? text) {
 
   var userMentionsRegEx = RegExp(r'@\[__([^_]+)__]\(__([^_]+)__\)');
   var userMentionsMatches = userMentionsRegEx.allMatches(text);
-
-  if (userMentionsMatches.isEmpty) {
-    return [TextSegment(text)];
-  }
-
   int lastUserMentionEnd = 0;
 
   userMentionsMatches.forEach(
